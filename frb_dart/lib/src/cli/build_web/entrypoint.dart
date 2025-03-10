@@ -69,8 +69,11 @@ class Config {
 
   /// {@macro flutter_rust_bridge.cli}
   @CliOption(
-      help: 'Sets the target environment. [possible values: web, no-modules]; default: no-modules')
-  late String? target;
+      help: 'What type of output to generate',
+      allowed: ['web', 'no-modules'],
+      valueHelp: 'TARGET',
+      defaultsTo: 'no-modules')
+  late String target;
 
   /// {@macro flutter_rust_bridge.cli}
   @CliOption(
@@ -118,7 +121,7 @@ BuildWebArgs _parseConfigToArgs(Config config) {
     wasmBindgenArgs: config.wasmBindgenArgs,
     wasmPackRustupToolchain: config.wasmPackRustupToolchain,
     wasmPackRustflags: config.wasmPackRustflags,
-    target: config.target ?? "no-modules",
+    target: config.target,
     dartCompileJsEntrypoint: config.dartCompileJsEntrypoint,
   );
 }

@@ -5,9 +5,9 @@
 use crate::misc::web_utils::script_path;
 use crate::web_transfer::transfer_closure::TransferClosure;
 use js_sys::Array;
-use std::cell::RefCell;
 use std::iter::FromIterator;
 use std::rc::Rc;
+use std::{cell::RefCell, path::Path};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::BlobPropertyBag;
@@ -92,28 +92,63 @@ impl WorkerPool {
     fn spawn(&self) -> Result<Worker, JsValue> {
         let worker_js_preamble = &self.worker_js_preamble;
         let script_src = &self.script_src;
+
+        let url = Url::new(&self.script_src)?;
+        let pathname = url.pathname();
+        let path = Path::new(&pathname)
+            .parent()
+            .and_then(|p| p.to_str())
+            .unwrap_or_default();
+        let package_root = path.strip_suffix('/').unwrap_or(path).to_owned();
+
+        let package_src = format!("{domain}{package_root}/package.json", domain = url.origin());
+
         let script = format!(
             "{worker_js_preamble}
-            importScripts('{script_src}');
+
+            let init_wasm_bindgen = async (data) => {{
+                const response = await fetch('{package_src}');
+                const json = await response.json();
+                const isModule = json.type === 'module';
+
+                let wasm_obj;
+                if (isModule) {{
+                    // module
+                    await import('{script_src}').then(module => {{
+                        wasm_obj = Object.assign(module.default, {{ initSync: module.initSync }}, module);
+                    }});
+                }} else {{
+                    // not a module
+                    importScripts('{script_src}');
+                    wasm_obj = wasm_bindgen;
+                }}
+
+                await wasm_obj(...data).catch(err => {{
+                    setTimeout(() => {{ throw err }});
+                    throw err;
+                }});
+
+                return wasm_obj;
+            }};
+
             const FRB_ACTION_PANIC = 3;
             onmessage = event => {{
-                let init = wasm_bindgen(...event.data).catch(err => {{
-                    setTimeout(() => {{ throw err }})
-                    throw err
-                }})
+                const init = init_wasm_bindgen(event.data);
+
                 onmessage = async event => {{
-                    await init
-                    const [payload, ...transfer] = event.data
+                    let wasm_bindgen = await init;
+
+                    const [payload, ...transfer] = event.data;
                     try {{
-                        wasm_bindgen.receive_transfer_closure(payload, transfer)
+                        wasm_bindgen.receive_transfer_closure(payload, transfer);
                     }} catch (err) {{
                         if (transfer[0] && typeof transfer[0].postMessage === 'function') {{
                             // panic
-                            transfer[0].postMessage([FRB_ACTION_PANIC, err.toString()])
+                            transfer[0].postMessage([FRB_ACTION_PANIC, err.toString()]);
                         }}
-                        setTimeout(() => {{ throw err }})
-                        postMessage(null)
-                        throw err
+                        setTimeout(() => {{ throw err }});
+                        postMessage(null);
+                        throw err;
                     }}
                 }}
             }}",
