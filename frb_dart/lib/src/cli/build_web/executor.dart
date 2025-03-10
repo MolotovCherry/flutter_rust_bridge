@@ -33,6 +33,9 @@ class BuildWebArgs {
   final String? wasmPackRustflags;
 
   /// {@macro flutter_rust_bridge.cli}
+  final String target;
+
+  /// {@macro flutter_rust_bridge.cli}
   final String? dartCompileJsEntrypoint;
 
   /// {@macro flutter_rust_bridge.cli}
@@ -48,6 +51,7 @@ class BuildWebArgs {
       required this.wasmBindgenArgs,
       required this.wasmPackRustupToolchain,
       required this.wasmPackRustflags,
+      required this.target,
       required this.dartCompileJsEntrypoint,
       this.features = const []});
 }
@@ -154,7 +158,7 @@ Future<void> _executeWasmPack(BuildWebArgs args,
   await runCommand('wasm-pack', [
     'build',
     '-t',
-    'no-modules',
+    args.target,
     '-d',
     args.outputWasm,
     '--no-typescript',
@@ -195,7 +199,7 @@ Future<void> _executeWasmBindgen(BuildWebArgs args,
     args.outputWasm,
     '--no-typescript',
     '--target',
-    'no-modules',
+    args.target,
     ...args.wasmBindgenArgs,
     // migrate to `wasmBindgenArgs`
     // if (config.cliOpts.weakRefs) '--weak-refs',

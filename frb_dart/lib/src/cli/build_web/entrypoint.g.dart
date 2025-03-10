@@ -18,6 +18,7 @@ Config _$parseConfigResult(ArgResults result) => Config()
   ..wasmBindgenArgs = result['wasm-bindgen-args'] as List<String>
   ..wasmPackRustupToolchain = result['wasm-pack-rustup-toolchain'] as String?
   ..wasmPackRustflags = result['wasm-pack-rustflags'] as String?
+  ..target = result['target'] as String?
   ..dartCompileJsEntrypoint = result['dart-compile-js-entrypoint'] as String?;
 
 ArgParser _$populateConfigParser(ArgParser parser) => parser
@@ -63,6 +64,11 @@ ArgParser _$populateConfigParser(ArgParser parser) => parser
   ..addOption(
     'wasm-pack-rustflags',
     help: 'Override RUSTFLAGS environment variable when running wasm-pack',
+  )
+  ..addOption(
+    'target',
+    help:
+        'Sets the target environment. [possible values: web, no-modules]; default: no-modules',
   )
   ..addOption(
     'dart-compile-js-entrypoint',

@@ -69,6 +69,11 @@ class Config {
 
   /// {@macro flutter_rust_bridge.cli}
   @CliOption(
+      help: 'Sets the target environment. [possible values: web, no-modules]; default: no-modules')
+  late String? target;
+
+  /// {@macro flutter_rust_bridge.cli}
+  @CliOption(
       help:
           'If specified, compile Dart into JavaScript and use this option as entrypoint')
   late String? dartCompileJsEntrypoint;
@@ -113,6 +118,7 @@ BuildWebArgs _parseConfigToArgs(Config config) {
     wasmBindgenArgs: config.wasmBindgenArgs,
     wasmPackRustupToolchain: config.wasmPackRustupToolchain,
     wasmPackRustflags: config.wasmPackRustflags,
+    target: config.target ?? "no-modules",
     dartCompileJsEntrypoint: config.dartCompileJsEntrypoint,
   );
 }
